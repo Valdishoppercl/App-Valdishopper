@@ -5,31 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Horario App Valdishopper</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script>
-    // === NUEVO: registra accesos en tu Web App (Apps Script) ===
-    async function logAccess(idToken) {
+    // Envía el id_token al Web App para registrar el acceso
+    function logAccess(idToken) {
+      const url = 'https://script.google.com/macros/s/AKfycbw9sq2Hme9bHvL5nZrzzOlE_NDZNYfDHXn1GXYtu0hnxdjJyR1TWENZERTjdW0do5KT/exec';
+      const payload = JSON.stringify({ id_token: idToken });
+
+      // 1) Intenta con sendBeacon (robusto y no bloqueante)
       try {
-        await fetch('https://script.google.com/macros/s/AKfycbwDbk7uYZjJzs4brkhNNbnU9Fr_st3VDu9gydurnfCqurS5TFbIgqPCIZa8gux0KMu9/exec', {
-          method: 'POST',
-          mode: 'no-cors',               // simple y robusto para Apps Script
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id_token: idToken })
-        });
-      } catch (e) {
-        console.warn('No se pudo registrar el acceso:', e);
-      }
+        const ok = navigator.sendBeacon(
+          url,
+          new Blob([payload], { type: 'text/plain' })
+        );
+        if (ok) return;
+      } catch (_) {}
+
+      // 2) Fallback con fetch (no-cors)
+      fetch(url, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      }).catch(e => console.warn('No se pudo registrar el acceso:', e));
     }
 
+    // Callback de Google Sign-In
     function handleCredentialResponse(response) {
       const token = response.credential;
       const payload = JSON.parse(atob(token.split('.')[1]));
       const email = payload.email;
+      const hd    = payload.hd; // dominio (hosted domain)
 
-      if (email.endsWith('@valdishopper.com')) {
+      if (email && email.endsWith('@valdishopper.com') && hd === 'valdishopper.com') {
         document.getElementById("login").style.display = "none";
         document.getElementById("contenido").style.display = "block";
 
-        // === NUEVO: envía el id_token al servidor para registrar el acceso ===
+        // Registrar acceso
         logAccess(token);
       } else {
         document.getElementById("login").innerHTML = `
@@ -39,6 +51,7 @@
       }
     }
   </script>
+
   <style>
     html, body {
       margin: 0;
@@ -47,7 +60,6 @@
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
     }
-
     #login {
       height: 100vh;
       display: flex;
@@ -55,14 +67,13 @@
       align-items: center;
       justify-content: center;
       text-align: center;
+      gap: 12px;
     }
-
     #contenido {
       display: none;
       width: 100%;
       height: 100vh;
     }
-
     iframe {
       width: 100%;
       height: 100%;
@@ -97,4 +108,3 @@
   </div>
 </body>
 </html>
-
