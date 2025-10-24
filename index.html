@@ -6,6 +6,20 @@
   <title>Horario App Valdishopper</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
+    // === NUEVO: registra accesos en tu Web App (Apps Script) ===
+    async function logAccess(idToken) {
+      try {
+        await fetch('https://script.google.com/macros/s/AKfycbwDbk7uYZjJzs4brkhNNbnU9Fr_st3VDu9gydurnfCqurS5TFbIgqPCIZa8gux0KMu9/exec', {
+          method: 'POST',
+          mode: 'no-cors',               // simple y robusto para Apps Script
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id_token: idToken })
+        });
+      } catch (e) {
+        console.warn('No se pudo registrar el acceso:', e);
+      }
+    }
+
     function handleCredentialResponse(response) {
       const token = response.credential;
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -14,6 +28,9 @@
       if (email.endsWith('@valdishopper.com')) {
         document.getElementById("login").style.display = "none";
         document.getElementById("contenido").style.display = "block";
+
+        // === NUEVO: envía el id_token al servidor para registrar el acceso ===
+        logAccess(token);
       } else {
         document.getElementById("login").innerHTML = `
           <h2>Acceso denegado</h2>
@@ -80,3 +97,4 @@
   </div>
 </body>
 </html>
+
